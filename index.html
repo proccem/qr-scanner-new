@@ -1,45 +1,34 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>QR Code Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <style>
-    body { font-family: Arial; text-align: center; padding: 20px; }
-    #reader { width: 300px; margin: auto; }
-    #result { margin-top: 20px; font-size: 18px; }
-  </style>
-</head>
-<body>
-  <h2>Scan Guest QR Code</h2>
-  <div id="reader"></div>
-  <div id="result">Waiting for scan...</div>
 
-  <script>
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbxBFOJ1wt-GNVmL8Df3-n1Q51CxNTUNLB63EkJC8Bt6oSVf9KEmMk-W96ekZEgZHYZ8Fw/exec";
+<script>
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbxBFOJ1wt-GNVmL8Df3-n1Q51CxNTUNLB63EkJC8Bt6oSVf9KEmMk-W96ekZEgZHYZ8Fw/exec";
+  let hasScanned = false;
 
-    function onScanSuccess(decodedText) {
-      document.getElementById('result').innerText = `Scanned: ${decodedText}`;
+  function onScanSuccess(decodedText) {
+    if (hasScanned) return; // Prevent multiple scans
+    hasScanned = true;
 
-      fetch(webAppUrl, {
-        method: 'POST',
-        body: JSON.stringify({ guestDetails: decodedText }),
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById('result').innerText = `✅ Response: ${data}`;
-      })
-      .catch(error => {
-        document.getElementById('result').innerText = "❌ Error: " + error;
-      });
-    }
+    document.getElementById('result').innerText = `⏳ Sending data...`;
 
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      onScanSuccess
-    );
-  </script>
-</body>
-</html>
+    fetch(webAppUrl, {
+      method: 'POST',
+      body: JSON.stringify({ guestDetails: decodedText }),
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.text())
+    .then(data => {
+      document.getElementById('result').innerText = `✅ ${data}`;
+      html5QrCode.stop(); // Stop the scanner after success
+    })
+    .catch(error => {
+      document.getElementById('result').innerText = "❌ Error: " + error;
+      hasScanned = false; // Allow retry
+    });
+  }
+
+  const html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    onScanSuccess
+  );
+</script>
